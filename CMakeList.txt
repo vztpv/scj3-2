@@ -15,8 +15,8 @@ set(CMAKE_POLICY_DEFAULT_CMP0048 NEW)
 #set(CMAKE_CXX_STANDARD 17) # C++17
 set(CMAKE_BUILD_TYPE "Release")
 
-set(LIB_NAME claujson) # static lib
-set(LIB_NAME14 claujson14) # static lib with c++ 14
+set(LIB_NAME claujson_pool) # static lib
+set(LIB_NAME14 claujson_pool14) # static lib with c++ 14
 
 set(ROOT .)
 
