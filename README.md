@@ -1,5 +1,5 @@
 # scj3-2 - claujson_pool
-experimental parallel json parser, (using simdjson, thread)
+experimental parallel json parser, (using simdjson with memory pool, thread)
 
 scanning - simd,
 
