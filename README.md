@@ -29,15 +29,15 @@ if (!x.first) {
 }
 
 //claujson::save("test12.txt", j);
-w.write_parallel("test34.json", j, 0);
+w.write_parallel(d.GetAllocator(), "test34.json", j, 0);
 
 int counter = 0;
 ok = x.first;
 
 double sum = 0;
 
-static const auto& _geometry = claujson::_Value("geometry"sv);
-static const auto& _coordinates = claujson::_Value("coordinates"sv);
+static const auto& _geometry = claujson::_Value(d.GetAllocator(), "geometry"sv);
+static const auto& _coordinates = claujson::_Value(d.GetAllocator(), "coordinates"sv);
 
 if (true && ok) {
     for (int i = 0; i < 1; ++i) {
