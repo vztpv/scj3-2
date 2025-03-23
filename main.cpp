@@ -760,8 +760,8 @@ int main(int argc, char* argv[])
 
 		// json_pointer, json_pointerA <- u8string_view?
 
-		static const auto _geometry = claujson::_Value(nullptr, "geometry"sv);
-		static const auto _coordinates = claujson::_Value(nullptr, "coordinates"sv);
+		static const auto _geometry = claujson::_Value(d.GetAllocator(), "geometry"sv);
+		static const auto _coordinates = claujson::_Value(d.GetAllocator(), "coordinates"sv);
 
 		double sum = 0;
 		if (true && ok) {
