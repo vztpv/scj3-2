@@ -555,7 +555,7 @@ namespace claujson {
 		Arena(const Arena&) = delete;
 		Arena& operator=(const Arena&) = delete;
 
-		//inline static int64_t counter = 0;
+		inline static int64_t counter = 0;
 	private:
 		
 		// _Value
@@ -597,7 +597,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 
 			newBlock->next = head[1];
 			head[1] = newBlock;
@@ -643,7 +643,7 @@ namespace claujson {
 		template <class T>
 		void deallocate32(T* ptr, uint64_t len) {
 			uint64_t size = sizeof(T) * len;
-			Block* block = head[1];
+			Block* block = head[2];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
 					(uint8_t*)(ptr)+sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
@@ -675,7 +675,7 @@ namespace claujson {
 		template <class T>
 		void deallocate64(T* ptr, uint64_t len) {
 			uint64_t size = sizeof(T) * len;
-			Block* block = head[1];
+			Block* block = head[3];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
 					(uint8_t*)(ptr)+sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
@@ -745,7 +745,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 
 			newBlock->next = head[2];
 			head[2] = newBlock;
@@ -796,7 +796,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 
 			newBlock->next = head[3];
 			head[3] = newBlock;
@@ -844,7 +844,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 
 			newBlock->next = head[0];
 			head[0] = newBlock;
@@ -858,6 +858,7 @@ namespace claujson {
 		// expand
 		template <class T>
 		void deallocate(T* ptr, uint64_t len) {		
+
 			if (sizeof(T) == 16) {
 				return deallocate16<T>(ptr, len);
 			}

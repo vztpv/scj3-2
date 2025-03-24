@@ -543,11 +543,11 @@ int main(int argc, char* argv[])
 		return 2;
 	}
 
-	diff_test();
+	//diff_test();
 	std::cout << "----------\n";
 	//diff_test2();
 	std::cout << "----------\n";
-	{
+	if(0){
 		claujson::Document d;
 		claujson::_Value arr = claujson::Array::Make(d.GetAllocator());
 		arr.as_array()->add_element(claujson::_Value(1));
@@ -673,13 +673,16 @@ int main(int argc, char* argv[])
 		auto x = p.parse(argv[1], j, thr_num); // argv[1], j, 64 ??
 		//claujson::Document d = std::move(j);
 
+		
+
 		if (!x.first) {
 			std::cout << "fail\n";
 
 			return 1;
 		}
 
-
+		std::cout << "counter " << claujson::Arena::counter << "\n";
+		//return 0;
 		//continue;
 	 //return 0;
 
@@ -710,12 +713,14 @@ int main(int argc, char* argv[])
 	//	return 0;
 		//
 		// 
+		claujson::Arena::counter = 0;
 
 		claujson::writer w;
 		claujson::Document d;
 		w.write_parallel(d.GetAllocator(), "temp.json", j.Get(), 0, true);
 
 		std::cout << "write_parallel " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - c).count() << "ms\n";
+		std::cout << "counter " << claujson::Arena::counter << "\n";
 
 		if (1) {
 
@@ -763,6 +768,8 @@ int main(int argc, char* argv[])
 		static const auto _geometry = claujson::_Value(d.GetAllocator(), "geometry"sv);
 		static const auto _coordinates = claujson::_Value(d.GetAllocator(), "coordinates"sv);
 
+		claujson::Arena::counter = 0;
+
 		double sum = 0;
 		if (true && ok) {
 			for (int i = 0; i < 1; ++i) {
@@ -796,6 +803,7 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
+		std::cout << "counter  " << claujson::Arena::counter << "\n";
 
 		auto dd = std::chrono::steady_clock::now();
 		dur = std::chrono::duration_cast<std::chrono::milliseconds>(dd - c);
@@ -813,7 +821,7 @@ int main(int argc, char* argv[])
 			w.write_parallel(d.GetAllocator(), "test2333.json", j.Get(), 0, true);
 		}
 
-		//std::cout << "counter " << claujson::Arena::counter << "\n";
+		std::cout << "counter " << claujson::Arena::counter << "\n";
 		return 0;
 
 
