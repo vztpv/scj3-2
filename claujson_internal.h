@@ -749,9 +749,9 @@ namespace claujson {
 				return nullptr;
 			}
 			//counter++;
-			uint64_t remaining = newCap - newBlock->offset;
+			uint64_t remain = newCap - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remaining)) {
+			if (!std::align(alignof(T), size, ptr, remain)) {
 				delete newBlock;
 				return nullptr;
 			}
@@ -803,9 +803,9 @@ namespace claujson {
 				return nullptr;
 			}
 			//counter++;
-			uint64_t remaining = newCap - newBlock->offset;
+			uint64_t remain = newCap - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remaining)) {
+			if (!std::align(alignof(T), size, ptr, remain)) {
 				delete newBlock;
 				return nullptr;
 			}
@@ -836,7 +836,10 @@ namespace claujson {
 			while (block) {
 				void* ptr = block->data + block->offset;
 				uint64_t remain = block->capacity - block->offset;
-				std::align(alignof(T), size, ptr, remain);
+				if (!std::align(alignof(T), size, ptr, remain))
+				{
+					return nullptr;
+				}
 				uint64_t diff = ((uint8_t*)ptr - block->data);
 				
 				if (diff + size <= block->capacity) {
@@ -860,7 +863,10 @@ namespace claujson {
 
 			void* ptr = newBlock->data + newBlock->offset;
 			uint64_t remain = block->capacity - block->offset;
-			std::align(alignof(T), size, ptr, remain);
+			if (!std::align(alignof(T), size, ptr, remain)) {
+				delete newBlock;
+				return nullptr;
+			}
 			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
 			newBlock->offset = diff + size;
 			
