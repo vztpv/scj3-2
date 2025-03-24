@@ -544,7 +544,7 @@ namespace claujson {
 		Block* rear[4];
 		uint64_t defaultBlockSize;
 	public:
-		Arena(uint64_t initialSize = 1024 * 1024)
+		Arena(uint64_t initialSize = 1024 * 1024 + 64)
 			: defaultBlockSize(initialSize) {
 			for (int i = 0; i < 4; ++i) {
 				head[i] = (new (std::nothrow) Block(initialSize));
@@ -598,7 +598,10 @@ namespace claujson {
 				return nullptr;
 			}
 			//counter++;
-
+			
+			// if newBlock % 16 != 0
+			newBlock->offset = ((uint64_t)newBlock) & 15;
+			
 			newBlock->next = head[1];
 			head[1] = newBlock;
 
@@ -745,6 +748,9 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
+
+			// if newBlock % 32 != 0
+			newBlock->offset = ((uint64_t)newBlock) & 31;
 			//counter++;
 
 			newBlock->next = head[2];
@@ -797,6 +803,10 @@ namespace claujson {
 				return nullptr;
 			}
 			//counter++;
+
+			// if newBlock % 64 != 0
+			newBlock->offset = ((uint64_t)newBlock) & 63;
+
 
 			newBlock->next = head[3];
 			head[3] = newBlock;
