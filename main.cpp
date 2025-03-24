@@ -543,11 +543,11 @@ int main(int argc, char* argv[])
 		return 2;
 	}
 
-	//diff_test();
+	diff_test();
 	std::cout << "----------\n";
 	//diff_test2();
 	std::cout << "----------\n";
-	if(0){
+	if(1){
 		claujson::Document d;
 		claujson::_Value arr = claujson::Array::Make(d.GetAllocator());
 		arr.as_array()->add_element(claujson::_Value(1));

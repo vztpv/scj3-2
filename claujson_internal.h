@@ -586,29 +586,31 @@ namespace claujson {
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
 					block->offset = block->offset + size;
-					return (T*)ptr;
+					return reinterpret_cast<T*>(ptr);
 				}
 				block = block->next;
 			}
 
 			// allocate new block
-			uint64_t newCap = std::max(defaultBlockSize, size);
+			uint64_t newCap = std::max(defaultBlockSize, size + 64);
 			Block* newBlock = new (std::nothrow) Block(newCap);
 			if (!newBlock) {
 				return nullptr;
 			}
 			//counter++;
-			
-			// if newBlock % 16 != 0
-			newBlock->offset = ((uint64_t)newBlock) & 15;
-			
+			uint64_t remain = newCap - newBlock->offset;
+			void* ptr = newBlock->data + newBlock->offset;
+			if (!std::align(alignof(T), size, ptr, remain)) {
+				delete newBlock;
+				return nullptr;
+			}
+			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
+			newBlock->offset = diff + size;
+
 			newBlock->next = head[1];
 			head[1] = newBlock;
 
-			void* ptr = newBlock->data + newBlock->offset;
-			newBlock->offset = newBlock->offset + size;
-
-			return (T*)ptr;
+			return reinterpret_cast<T*>(ptr);
 		}
 		
 		template <class T>
@@ -649,8 +651,8 @@ namespace claujson {
 			Block* block = head[2];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
-					(uint8_t*)(ptr)+sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
-					if ((uint8_t*)(ptr)+sizeof(T) * len == (uint8_t*)(block->data) + block->offset) {
+					(uint8_t*)(ptr) + sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
+					if ((uint8_t*)(ptr) + sizeof(T) * len == (uint8_t*)(block->data) + block->offset) {
 						block->offset = (uint8_t*)ptr - (uint8_t*)block->data;
 						//std::cout << "real_deallocated\n"; //
 					}
@@ -735,31 +737,31 @@ namespace claujson {
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
 					block->offset = block->offset + size;
-					return (T*)ptr;
+					return reinterpret_cast<T*>(ptr);
 				}
-
 				block = block->next;
 			}
 
-
 			// allocate new block
-			uint64_t newCap = std::max(defaultBlockSize, size);
+			uint64_t newCap = std::max(defaultBlockSize, size + 64);
 			Block* newBlock = new (std::nothrow) Block(newCap);
 			if (!newBlock) {
 				return nullptr;
 			}
-
-			// if newBlock % 32 != 0
-			newBlock->offset = ((uint64_t)newBlock) & 31;
 			//counter++;
+			uint64_t remaining = newCap - newBlock->offset;
+			void* ptr = newBlock->data + newBlock->offset;
+			if (!std::align(alignof(T), size, ptr, remaining)) {
+				delete newBlock;
+				return nullptr;
+			}
+			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
+			newBlock->offset = diff + size;
 
 			newBlock->next = head[2];
 			head[2] = newBlock;
 
-			void* ptr = newBlock->data + newBlock->offset;
-			newBlock->offset = newBlock->offset + size;
-
-			return (T*)ptr;
+			return reinterpret_cast<T*>(ptr);
 		}
 		// Array or Object
 		template <class T>
@@ -789,32 +791,31 @@ namespace claujson {
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
 					block->offset = block->offset + size;
-					return (T*)ptr;
+					return reinterpret_cast<T*>(ptr);
 				}
-
 				block = block->next;
 			}
 
-
 			// allocate new block
-			uint64_t newCap = std::max(defaultBlockSize, size);
+			uint64_t newCap = std::max(defaultBlockSize, size + 64);
 			Block* newBlock = new (std::nothrow) Block(newCap);
 			if (!newBlock) {
 				return nullptr;
 			}
 			//counter++;
-
-			// if newBlock % 64 != 0
-			newBlock->offset = ((uint64_t)newBlock) & 63;
-
+			uint64_t remaining = newCap - newBlock->offset;
+			void* ptr = newBlock->data + newBlock->offset;
+			if (!std::align(alignof(T), size, ptr, remaining)) {
+				delete newBlock;
+				return nullptr;
+			}
+			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
+			newBlock->offset = diff + size;
 
 			newBlock->next = head[3];
 			head[3] = newBlock;
 
-			void* ptr = newBlock->data + newBlock->offset;
-			newBlock->offset = newBlock->offset + size;
-
-			return (T*)ptr;
+			return reinterpret_cast<T*>(ptr);
 		}
 	public:
 		template <class T>
@@ -833,23 +834,21 @@ namespace claujson {
 			Block* block = head[0];
 
 			while (block) {
-				uint64_t alignedOffset = (block->offset + align - 1) & ~(align - 1);
-				if (alignedOffset + size <= block->capacity) {
-					void* ptr = block->data + alignedOffset;
-					block->offset = alignedOffset + size;
+				void* ptr = block->data + block->offset;
+				uint64_t remain = block->capacity - block->offset;
+				std::align(alignof(T), size, ptr, remain);
+				uint64_t diff = ((uint8_t*)ptr - block->data);
+				
+				if (diff + size <= block->capacity) {
+					block->offset = diff + size;
 					return (T*)ptr;
 				}
-				/*if (block->offset + size <= block->capacity) {
-					void* ptr = block->data + block->offset;
-					block->offset = block->offset + size;
-					return (T*)ptr;
-				}*/
-
+				
 				block = block->next;
 			}
 
 			// allocate new block
-			uint64_t newCap = std::max(defaultBlockSize, size);
+			uint64_t newCap = std::max(defaultBlockSize, size + 64);
 			Block* newBlock = new (std::nothrow) Block(newCap);
 			if (!newBlock) {
 				return nullptr;
@@ -860,9 +859,12 @@ namespace claujson {
 			head[0] = newBlock;
 
 			void* ptr = newBlock->data + newBlock->offset;
-			newBlock->offset = newBlock->offset + size;
+			uint64_t remain = block->capacity - block->offset;
+			std::align(alignof(T), size, ptr, remain);
+			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
+			newBlock->offset = diff + size;
 			
-			return (T*)ptr;
+			return reinterpret_cast<T*>(ptr);
 		}
 
 		// expand
@@ -884,12 +886,9 @@ namespace claujson {
 			Block* block = head[0];
 
 			while (block) {
-				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
-					(uint8_t*)(ptr) + sizeof(T) * len < (uint8_t*)(block->data) + block->capacity) {
-					if ((uint8_t*)(ptr) + sizeof(T) * len == (uint8_t*)(block->data) + block->offset) {
-						block->offset = (uint8_t*)ptr - (uint8_t*)block->data;
+				if ((uint8_t*)(ptr) + sizeof(T) * len == (uint8_t*)(block->data) + block->offset) {
+					block->offset = (uint8_t*)ptr - (uint8_t*)block->data;
 						//std::cout << "real_deallocated\n"; //
-					}
 					return;
 				}
 
