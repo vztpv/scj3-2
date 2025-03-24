@@ -681,7 +681,7 @@ int main(int argc, char* argv[])
 			return 1;
 		}
 
-		std::cout << "counter " << claujson::Arena::counter << "\n";
+		//std::cout << "counter " << claujson::Arena::counter << "\n";
 		//return 0;
 		//continue;
 	 //return 0;
@@ -713,14 +713,14 @@ int main(int argc, char* argv[])
 	//	return 0;
 		//
 		// 
-		claujson::Arena::counter = 0;
+	//	claujson::Arena::counter = 0;
 
 		claujson::writer w;
 		claujson::Document d;
 		w.write_parallel(d.GetAllocator(), "temp.json", j.Get(), 0, true);
 
 		std::cout << "write_parallel " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - c).count() << "ms\n";
-		std::cout << "counter " << claujson::Arena::counter << "\n";
+	//	std::cout << "counter " << claujson::Arena::counter << "\n";
 
 		if (1) {
 
@@ -767,8 +767,8 @@ int main(int argc, char* argv[])
 
 		static const auto _geometry = claujson::_Value(d.GetAllocator(), "geometry"sv);
 		static const auto _coordinates = claujson::_Value(d.GetAllocator(), "coordinates"sv);
-
-		claujson::Arena::counter = 0;
+///
+		//claujson::Arena::counter = 0;
 
 		double sum = 0;
 		if (true && ok) {
@@ -803,7 +803,7 @@ int main(int argc, char* argv[])
 				}
 			}
 		}
-		std::cout << "counter  " << claujson::Arena::counter << "\n";
+	//	std::cout << "counter  " << claujson::Arena::counter << "\n";
 
 		auto dd = std::chrono::steady_clock::now();
 		dur = std::chrono::duration_cast<std::chrono::milliseconds>(dd - c);
@@ -821,7 +821,7 @@ int main(int argc, char* argv[])
 			w.write_parallel(d.GetAllocator(), "test2333.json", j.Get(), 0, true);
 		}
 
-		std::cout << "counter " << claujson::Arena::counter << "\n";
+		//std::cout << "counter " << claujson::Arena::counter << "\n";
 		return 0;
 
 

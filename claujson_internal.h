@@ -555,7 +555,7 @@ namespace claujson {
 		Arena(const Arena&) = delete;
 		Arena& operator=(const Arena&) = delete;
 
-		inline static int64_t counter = 0;
+		//inline static int64_t counter = 0;
 	private:
 		
 		// _Value
@@ -597,7 +597,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			counter++;
+			//counter++;
 
 			newBlock->next = head[1];
 			head[1] = newBlock;
@@ -745,7 +745,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			counter++;
+			//counter++;
 
 			newBlock->next = head[2];
 			head[2] = newBlock;
@@ -796,7 +796,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			counter++;
+			//counter++;
 
 			newBlock->next = head[3];
 			head[3] = newBlock;
@@ -844,7 +844,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			counter++;
+			//counter++;
 
 			newBlock->next = head[0];
 			head[0] = newBlock;
