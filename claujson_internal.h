@@ -11,7 +11,6 @@
 #include <cstring>
 #include <cstdint> // uint64_t? int64_t?
 
-#include "mimalloc.h"
 
 template <class From, class To>
 inline To Static_Cast(From x) {
