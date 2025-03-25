@@ -3,11 +3,11 @@
 // need C++14~, 64bit..
 // mainly tested with C++17...
 
-//#define _CRTDBG_MAP_ALLOC
-//#include <cstdlib>
-//#include <crtdbg.h>
+#define _CRTDBG_MAP_ALLOC
+#include <cstdlib>
+#include <crtdbg.h>
 
-//#include "mimalloc-new-delete.h"
+#include "mimalloc-new-delete.h"
 
 #include <iostream>
 #include <string>
@@ -24,8 +24,9 @@
 void utf_8_test() {
 	using claujson::_Value;
 
+	claujson::Document d;
 	// C++17 - stringview, C++20~ - u8string_view
-	_Value x(nullptr, u8"こんにちは \\n wow hihi"sv); // no sv -> Data(bool)
+	_Value x(d.GetAllocator(), u8"こんにちは \\n wow hihi"sv); // no sv -> Data(bool)
 	if (x) { // if before string is not valid utf-8, then x is not valid. x -> false
 		auto& y = x.str_val();
 		std::cout << y.data() << "\n";
@@ -40,10 +41,10 @@ void key_dup_test() {
 	claujson::Document d;
 	_Value x = Object::Make(d.GetAllocator());
 
-	x.as_object()->add_element(_Value(nullptr, "456"sv), _Value(123));
-	x.as_object()->add_element(_Value(nullptr, "123"sv), _Value(234));
-	x.as_object()->add_element(_Value(nullptr, "567"sv), _Value(345));
-	x.as_object()->add_element(_Value(nullptr, "456"sv), _Value(456));
+	x.as_object()->add_element(_Value(d.GetAllocator(), "456"sv), _Value(123));
+	x.as_object()->add_element(_Value(d.GetAllocator(), "123"sv), _Value(234));
+	x.as_object()->add_element(_Value(d.GetAllocator(), "567"sv), _Value(345));
+	x.as_object()->add_element(_Value(d.GetAllocator(), "456"sv), _Value(456));
 
 	uint64_t idx = 0;
 	bool found = false;
@@ -532,7 +533,7 @@ void diff_test2() {
 
 int main(int argc, char* argv[])
 {
-	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	std::cout << sizeof(std::vector<std::pair<claujson::_Value, claujson::_Value>>) << "\n";
 	//std::cout << sizeof(std::string) << " " << sizeof(claujson::Structured) << " " << sizeof(claujson::Array)
@@ -642,7 +643,8 @@ int main(int argc, char* argv[])
 
 	claujson::parser p;
 
-	for (int i = 0; i < 5; ++i) {
+	for (int i = 0; i < 1000; ++i) {
+		claujson::Arena::counter = 0;
 
 		claujson::Document j;
 
@@ -680,9 +682,18 @@ int main(int argc, char* argv[])
 
 			return 1;
 		}
-
-		//std::cout << "counter " << claujson::Arena::counter << "\n";
+		{
+			int a = clock();
+			//j.GetAllocator()->reset();
+			int b = clock();
+			//std::cout << "remove " << b - a << "ms\n";
+		}
+		
+		std::cout << "counter " << claujson::Arena::counter << "\n";
 		//return 0;
+		continue;
+		//return 0;
+		//
 		//continue;
 	 //return 0;
 

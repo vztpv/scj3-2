@@ -11,6 +11,7 @@
 #include <cstring>
 #include <cstdint> // uint64_t? int64_t?
 
+#include "mimalloc.h"
 
 template <class From, class To>
 inline To Static_Cast(From x) {
@@ -520,9 +521,17 @@ namespace claujson {
 
 	// memory_pool?
 	class Arena {
-		struct Node {
+		struct alignas(16) Node16 {
 			uint64_t size;
-			Node* next;
+			Node16* next;
+		};
+		struct alignas(32) Node32 {
+			uint64_t size;
+			Node32* next;
+		};
+		struct alignas(64) Node64 {
+			uint64_t size;
+			Node64* next;
 		};
 
 		struct Block {
@@ -530,21 +539,28 @@ namespace claujson {
 			uint64_t capacity;
 			uint64_t offset;
 			uint8_t* data;
-			Node* free_list;
+			Node16* free_list16;
+			Node32* free_list32;
+			Node64* free_list64;
 
 			Block(uint64_t cap)
-				: next(nullptr), capacity(cap), offset(0), free_list(nullptr) {
-				data = new uint8_t[capacity];
+				: next(nullptr), capacity(cap), offset(0), free_list16(nullptr),
+				free_list32(nullptr), free_list64(nullptr) {
+				//data = (uint8_t*)mi_malloc(sizeof(uint8_t) * capacity); // 
+				data = new (std::nothrow) uint8_t[capacity];
 			}
 
-			~Block() { delete[] data; }
+			~Block() {
+				delete[] data;
+			//	mi_free(data);
+			}
 		};
 
 		Block* head[4];
 		Block* rear[4];
 		uint64_t defaultBlockSize;
 	public:
-		Arena(uint64_t initialSize = 1024 * 1024 + 64)
+		Arena(uint64_t initialSize = 1024 * 512 + 64)
 			: defaultBlockSize(initialSize) {
 			for (int i = 0; i < 4; ++i) {
 				head[i] = (new (std::nothrow) Block(initialSize));
@@ -555,7 +571,7 @@ namespace claujson {
 		Arena(const Arena&) = delete;
 		Arena& operator=(const Arena&) = delete;
 
-		//inline static int64_t counter = 0;
+		inline static int64_t counter = 0;
 	private:
 		
 		// _Value
@@ -564,28 +580,50 @@ namespace claujson {
 			Block* block = head[1];
 
 			while (block) {
-				if (block->free_list) {
-					Node* temp = block->free_list->next;
+				if (block->free_list16) {
+					Node16* before = nullptr;
+					Node16* temp = block->free_list16;
+					Node16* next = temp->next;
 					while (temp) {
-						if (size <= block->free_list->size) {
-							T* ptr = reinterpret_cast<T*>(block->free_list);
-							if (size < block->free_list->size) {
-								uint64_t diff = block->free_list->size - size;
-								block->free_list = block->free_list + size / 16;
-								block->free_list->size = diff / 16;
-								block->free_list->next = temp;
+						next = temp->next;
+						if (size <= temp->size) {
+							T* ptr = reinterpret_cast<T*>(temp);
+							if (size < temp->size) {
+								uint64_t diff = temp->size - size;
+								Node16* temp2 = temp + size / 16;
+								temp2->size = diff / 16;
+								temp2->next = next;
+								if (!before) {
+									block->free_list16 = temp2;
+								}
+								else {
+									before->next = temp2;
+								}
 							}
 							else {
-								block->free_list = temp;
+								if (!before) {
+									block->free_list16 = next;
+								}
+								else {
+									before->next = temp->next;
+								}
 							}
 							return ptr;
 						}
+						before = temp;
 						temp = temp->next;
 					}
 				}
+
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
-					block->offset = block->offset + size;
+					uint64_t remain = block->capacity - size;
+					if (!std::align(alignof(T), size, ptr, remain)) {
+						block = block->next;
+						continue;
+					}
+					uint64_t diff = ((uint8_t*)ptr - block->data);
+					block->offset = diff + size;
 					return reinterpret_cast<T*>(ptr);
 				}
 				block = block->next;
@@ -597,7 +635,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 			uint64_t remain = newCap - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
 			if (!std::align(alignof(T), size, ptr, remain)) {
@@ -625,16 +663,16 @@ namespace claujson {
 						//std::cout << "real_deallocated\n"; //
 					}
 					else {
-						if (block->free_list) {
-							Node* temp = block->free_list->next;
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = temp;
+						if (block->free_list16) {
+							Node16* temp = block->free_list16->next;
+							block->free_list16 = reinterpret_cast<Node16*>(ptr);
+							block->free_list16->size = sizeof(T) * len;
+							block->free_list16->next = temp;
 						}
 						else {
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = nullptr;
+							block->free_list16 = reinterpret_cast<Node16*>(ptr);
+							block->free_list16->size = sizeof(T) * len;
+							block->free_list16->next = nullptr;
 						}
 					}
 					return;
@@ -657,22 +695,21 @@ namespace claujson {
 						//std::cout << "real_deallocated\n"; //
 					}
 					else {
-						if (block->free_list) {
-							Node* temp = block->free_list->next;
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = temp;
+						if (block->free_list32) {
+							Node32* temp = block->free_list32->next;
+							block->free_list32 = reinterpret_cast<Node32*>(ptr);
+							block->free_list32->size = sizeof(T) * len;
+							block->free_list32->next = temp;
 						}
 						else {
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = nullptr;
+							block->free_list32 = reinterpret_cast<Node32*>(ptr);
+							block->free_list32->size = sizeof(T) * len;
+							block->free_list32->next = nullptr;
 						}
 					}
 					return;
 				}
 
-				if (!block->next) break;
 				block = block->next;
 			}
 
@@ -689,22 +726,21 @@ namespace claujson {
 						//std::cout << "real_deallocated\n"; //
 					}
 					else {
-						if (block->free_list) {
-							Node* temp = block->free_list->next;
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = temp;
+						if (block->free_list64) {
+							Node64* temp = block->free_list64->next;
+							block->free_list64 = reinterpret_cast<Node64*>(ptr);
+							block->free_list64->size = sizeof(T) * len;
+							block->free_list64->next = temp;
 						}
 						else {
-							block->free_list = reinterpret_cast<Node*>(ptr);
-							block->free_list->size = sizeof(T) * len;
-							block->free_list->next = nullptr;
+							block->free_list64 = reinterpret_cast<Node64*>(ptr);
+							block->free_list64->size = sizeof(T) * len;
+							block->free_list64->next = nullptr;
 						}
 					}
 					return;
 				}
 
-				if (!block->next) break;
 				block = block->next;
 			}
 
@@ -715,28 +751,50 @@ namespace claujson {
 			Block* block = head[2];
 
 			while (block) {
-				if (block->free_list) {
-					Node* temp = block->free_list->next;
+				if (block->free_list32) {
+					Node32* before = nullptr;
+					Node32* temp = block->free_list32;
+					Node32* next = temp->next;
 					while (temp) {
-						if (size <= block->free_list->size) {
-							T* ptr = reinterpret_cast<T*>(block->free_list);
-							if (size < block->free_list->size) {
-								uint64_t diff = block->free_list->size - size;
-								block->free_list = block->free_list + size / 32;
-								block->free_list->size = diff / 32;
-								block->free_list->next = temp;
+						next = temp->next;
+						if (size <= temp->size) {
+							T* ptr = reinterpret_cast<T*>(temp);
+							if (size < temp->size) {
+								uint64_t diff = temp->size - size;
+								Node32* temp2 = temp + size / 32;
+								temp2->size = diff / 32;
+								temp2->next = next;
+								if (!before) {
+									block->free_list32 = temp2;
+								}
+								else {
+									before->next = temp2;
+								}
 							}
 							else {
-								block->free_list = temp;
+								if (!before) {
+									block->free_list32 = next;
+								}
+								else {
+									before->next = temp->next;
+								}
 							}
 							return ptr;
 						}
+						before = temp;
 						temp = temp->next;
 					}
 				}
+
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
-					block->offset = block->offset + size;
+					uint64_t remain = block->capacity - size;
+					if (!std::align(alignof(T), size, ptr, remain)) {
+						block = block->next;
+						continue;
+					}
+					uint64_t diff = ((uint8_t*)ptr - block->data);
+					block->offset = diff + size;
 					return reinterpret_cast<T*>(ptr);
 				}
 				block = block->next;
@@ -748,7 +806,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 			uint64_t remain = newCap - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
 			if (!std::align(alignof(T), size, ptr, remain)) {
@@ -769,28 +827,49 @@ namespace claujson {
 			Block* block = head[3];
 
 			while (block) {
-				if (block->free_list) {
-					Node* temp = block->free_list->next;
+				if (block->free_list64) {
+					Node64* before = nullptr;
+					Node64* temp = block->free_list64;
+					Node64* next = temp->next;
 					while (temp) {
-						if (size <= block->free_list->size) {
-							T* ptr = reinterpret_cast<T*>(block->free_list);
-							if (size < block->free_list->size) {
-								uint64_t diff = block->free_list->size - size;
-								block->free_list = block->free_list + size / 64;
-								block->free_list->size = diff / 64;
-								block->free_list->next = temp;
+						next = temp->next;
+						if (size <= temp->size) {
+							T* ptr = reinterpret_cast<T*>(temp);
+							if (size < temp->size) {
+								uint64_t diff = temp->size - size;
+								Node64* temp2 = temp + size / 64;
+								temp2->size = diff / 64;
+								temp2->next = next;
+								if (!before) {
+									block->free_list64 = temp2;
+								}
+								else {
+									before->next = temp2;
+								}
 							}
 							else {
-								block->free_list = temp;
+								if (!before) {
+									block->free_list64 = next;
+								}
+								else {
+									before->next = temp->next;
+								}
 							}
 							return ptr;
 						}
+						before = temp;
 						temp = temp->next;
 					}
 				}
 				if (block->offset + size <= block->capacity) {
 					void* ptr = block->data + block->offset;
-					block->offset = block->offset + size;
+					uint64_t remain = block->capacity - size;
+					if (!std::align(alignof(T), size, ptr, remain)) {
+						block = block->next;
+						continue;
+					}
+					uint64_t diff = ((uint8_t*)ptr - block->data);
+					block->offset = diff + size;
 					return reinterpret_cast<T*>(ptr);
 				}
 				block = block->next;
@@ -802,7 +881,7 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 			uint64_t remain = newCap - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
 			if (!std::align(alignof(T), size, ptr, remain)) {
@@ -831,23 +910,23 @@ namespace claujson {
 				return allocate64<T>(size);
 			}
 
-			Block* block = head[0];
+			{
+				Block* block = head[0];
 
-			while (block) {
-				void* ptr = block->data + block->offset;
-				uint64_t remain = block->capacity - block->offset;
-				if (!std::align(alignof(T), size, ptr, remain))
-				{
-					return nullptr;
+				while (block) {
+					if (block->offset + size <= block->capacity) {
+						void* ptr = block->data + block->offset;
+						uint64_t remain = block->capacity - size;
+						if (!std::align(alignof(T), size, ptr, remain)) {
+							block = block->next;
+							continue;
+						}
+						uint64_t diff = ((uint8_t*)ptr - block->data);
+						block->offset = diff + size;
+						return reinterpret_cast<T*>(ptr);
+					}
+					block = block->next;
 				}
-				uint64_t diff = ((uint8_t*)ptr - block->data);
-				
-				if (diff + size <= block->capacity) {
-					block->offset = diff + size;
-					return (T*)ptr;
-				}
-				
-				block = block->next;
 			}
 
 			// allocate new block
@@ -856,19 +935,19 @@ namespace claujson {
 			if (!newBlock) {
 				return nullptr;
 			}
-			//counter++;
+			counter++;
 
 			newBlock->next = head[0];
 			head[0] = newBlock;
 
 			void* ptr = newBlock->data + newBlock->offset;
-			uint64_t remain = block->capacity - block->offset;
+			uint64_t remain = newBlock->capacity - newBlock->offset;
 			if (!std::align(alignof(T), size, ptr, remain)) {
 				delete newBlock;
 				return nullptr;
 			}
 			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
-			newBlock->offset = diff + size;
+			newBlock->offset += size;
 			
 			return reinterpret_cast<T*>(ptr);
 		}
@@ -898,7 +977,6 @@ namespace claujson {
 					return;
 				}
 
-				if (!block->next) break;
 				block = block->next;
 			}
 		}
@@ -912,27 +990,20 @@ namespace claujson {
 		void reset() {
 			for (int i = 0; i < 4; ++i) {
 				if (head[i]) {
-					int64_t count = 0;
 					Block* block = head[i]->next;
 					while (block) {
 						Block* next = block->next;
 						delete block;
-						count++;
 						block = next;
 					}
 					head[i]->next = nullptr;
 					head[i]->offset = 0;
 					rear[i] = head[i];
-
-					//std::cout << "total delete " << count + 1 << "\n";
 				}
 			}
 		}
 
 		~Arena() {
-			//if (head) {
-			//std::cout << "total new " << counter << "\n";
-			//}
 			reset();
 			for (int i = 0; i < 4; ++i) {
 				if (head[i]) {
@@ -1049,7 +1120,7 @@ namespace claujson {
 					this->pool->deallocate(this->m_arr, this->m_capacity);
 				}
 				if (this->pool) {
-					this->m_arr = pool->allocate<T>(other.m_capacity, alignof(T));
+					this->m_arr = pool->allocate<T>(sizeof(T) * other.m_capacity, alignof(T));
 				}
 				else {
 					this->m_arr = new T[other.m_capacity]();
