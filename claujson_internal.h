@@ -570,7 +570,7 @@ namespace claujson {
 		Arena(const Arena&) = delete;
 		Arena& operator=(const Arena&) = delete;
 
-		inline static int64_t counter = 0;
+		static int64_t counter;
 	private:
 		
 		// _Value

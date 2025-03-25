@@ -24,6 +24,10 @@
 #endif
 
 	namespace claujson {
+
+
+		int64_t Arena::counter = 0;
+
 		// todo? make Document class? like simdjson?
 		_Value _Value::empty_value{ nullptr, false }; // valid is false..
 		const uint64_t _Value::npos = -1; // 
