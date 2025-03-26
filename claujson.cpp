@@ -1246,7 +1246,15 @@ namespace claujson {
 						break;
 					}
 				}
-
+				
+				int a = clock();
+				if (parent.is_array()) {
+					out->arr_vec = parent.arr->arr_vec.Divide(idx + 1);
+				}
+				else {
+					out->obj_data = parent.obj->obj_data.Divide(idx + 1);
+				}
+				/*
 				for (uint64_t i = idx + 1; i < len; ++i) {
 					if (parent.get_value_list(i).is_structured()) {
 						if (parent.is_array()) {
@@ -1264,8 +1272,9 @@ namespace claujson {
 							out->add_object_element(std::move(parent.get_key_list(i)), std::move(parent.get_value_list(i)));
 						}
 					}
-				}
+				}*/
 
+				//std::cout << "chk.. " << clock() - a << "ms\n";
 				{
 					_Value vrt;
 					if (parent.is_object()) {
@@ -1334,9 +1343,9 @@ namespace claujson {
 					out->add_array_element(std::move(vrt));
 				}
 
-				for (long long i = (long long)parent.get_data_size() - 1; i > idx; --i) {
-					parent.erase(i);
-				}
+				//for (long long i = (long long)parent.get_data_size() - 1; i > idx; --i) {
+				//	parent.erase(i);
+				//}
 
 				pos_ = parent;
 				parent = parent.get_parent();
@@ -1550,7 +1559,7 @@ namespace claujson {
 				_next.MergeWith(_ut, start_offset);
 
 				if (_ut.get_data_size() > 0 && _ut.get_value_list(0).is_structured() && _ut.get_value_list(0).is_virtual()) {
-					clean(_ut.get_value_list(0));
+					//clean(_ut.get_value_list(0)); // chk?
 				}
 
 				_ut.clear();
@@ -1993,10 +2002,10 @@ namespace claujson {
 								}
 							}
 
-							_global_memory_pool->link_from(*memory_pool[start]);
+							_global_memory_pool->link_from(memory_pool[start]);
 							for (uint64_t i = start + 1; i <= last; ++i) {
 								if (chk[i]) { continue; }
-								_global_memory_pool->link_from(*memory_pool[i]);
+								_global_memory_pool->link_from(memory_pool[i]);
 							}
 						}
 						//catch (...) {
@@ -2043,9 +2052,7 @@ namespace claujson {
 				if (_global) {
 					_global.Delete();
 				}
-				for (uint64_t i = 0; i < memory_pool.size(); ++i) {
-					delete memory_pool[i];
-				}
+
 				return true;
 			}
 			catch (int err) {

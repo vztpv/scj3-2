@@ -520,6 +520,7 @@ namespace claujson {
 
 	// memory_pool?
 	class Arena {
+	private:
 		struct alignas(16) Node16 {
 			uint64_t size;
 			Node16* next;
@@ -554,10 +555,12 @@ namespace claujson {
 			//	mi_free(data);
 			}
 		};
-
+	public:
 		Block* head[4];
 		Block* rear[4];
 		uint64_t defaultBlockSize;
+		Arena* now_pool;
+		Arena* next;
 	public:
 		Arena(uint64_t initialSize = 1024 * 512 + 64)
 			: defaultBlockSize(initialSize) {
@@ -565,6 +568,8 @@ namespace claujson {
 				head[i] = (new (std::nothrow) Block(initialSize));
 				rear[i] = head[i];
 			}
+			now_pool = this;
+			next = nullptr;
 		}
 
 		Arena(const Arena&) = delete;
@@ -576,7 +581,7 @@ namespace claujson {
 		// _Value
 		template <class T>
 		T* allocate16(uint64_t size) {
-			Block* block = head[1];
+			Block* block = now_pool->head[1];
 
 			while (block) {
 				if (block->free_list16) {
@@ -644,8 +649,8 @@ namespace claujson {
 			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
 			newBlock->offset = diff + size;
 
-			newBlock->next = head[1];
-			head[1] = newBlock;
+			newBlock->next = now_pool->head[1];
+			now_pool->head[1] = newBlock;
 
 			return reinterpret_cast<T*>(ptr);
 		}
@@ -653,7 +658,7 @@ namespace claujson {
 		template <class T>
 		void deallocate16(T* ptr, uint64_t len) {
 			uint64_t size = sizeof(T) * len;
-			Block* block = head[1];
+			Block* block = now_pool->head[1];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
 					(uint8_t*)(ptr) + sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
@@ -685,7 +690,7 @@ namespace claujson {
 		template <class T>
 		void deallocate32(T* ptr, uint64_t len) {
 			uint64_t size = sizeof(T) * len;
-			Block* block = head[2];
+			Block* block = now_pool->head[2];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
 					(uint8_t*)(ptr) + sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
@@ -716,7 +721,7 @@ namespace claujson {
 		template <class T>
 		void deallocate64(T* ptr, uint64_t len) {
 			uint64_t size = sizeof(T) * len;
-			Block* block = head[3];
+			Block* block = now_pool->head[3];
 			while (block) {
 				if ((uint8_t*)block->data <= (uint8_t*)ptr &&
 					(uint8_t*)(ptr)+sizeof(T) * len <= (uint8_t*)(block->data) + block->capacity) {
@@ -747,7 +752,7 @@ namespace claujson {
 		// String
 		template <class T>
 		T* allocate32(uint64_t size) {
-			Block* block = head[2];
+			Block* block = now_pool->head[2];
 
 			while (block) {
 				if (block->free_list32) {
@@ -815,15 +820,15 @@ namespace claujson {
 			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
 			newBlock->offset = diff + size;
 
-			newBlock->next = head[2];
-			head[2] = newBlock;
+			newBlock->next = now_pool->head[2];
+			now_pool->head[2] = newBlock;
 
 			return reinterpret_cast<T*>(ptr);
 		}
 		// Array or Object
 		template <class T>
 		T* allocate64(uint64_t size) {
-			Block* block = head[3];
+			Block* block = now_pool->head[3];
 
 			while (block) {
 				if (block->free_list64) {
@@ -890,8 +895,8 @@ namespace claujson {
 			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
 			newBlock->offset = diff + size;
 
-			newBlock->next = head[3];
-			head[3] = newBlock;
+			newBlock->next = now_pool->head[3];
+			now_pool->head[3] = newBlock;
 
 			return reinterpret_cast<T*>(ptr);
 		}
@@ -910,7 +915,7 @@ namespace claujson {
 			}
 
 			{
-				Block* block = head[0];
+				Block* block = now_pool->head[0];
 
 				while (block) {
 					if (block->offset + size <= block->capacity) {
@@ -936,8 +941,8 @@ namespace claujson {
 			}
 			counter++;
 
-			newBlock->next = head[0];
-			head[0] = newBlock;
+			newBlock->next = now_pool->head[0];
+			now_pool->head[0] = newBlock;
 
 			void* ptr = newBlock->data + newBlock->offset;
 			uint64_t remain = newBlock->capacity - newBlock->offset;
@@ -965,9 +970,8 @@ namespace claujson {
 				return deallocate64<T>(ptr, len);
 			}
 
-			return;
-			// has bug!
-			Block* block = head[0];
+			// chk !
+			Block* block = now_pool->head[0];
 
 			while (block) {
 				if ((uint8_t*)(ptr) + sizeof(T) * len == (uint8_t*)(block->data) + block->offset) {
@@ -1012,30 +1016,36 @@ namespace claujson {
 		}
 
 		// chk! when merge?
-		void link_from(Arena& other) {
+		void link_from(Arena* other) {
 			for (int i = 0; i < 4; ++i) {
 				if (!this->head[i]) {
-					this->head[i] = other.head[i];
-					this->rear[i] = other.rear[i];
+					this->head[i] = other->head[i];
+					this->rear[i] = other->rear[i];
 				}
 				else {
-					this->rear[i]->next = other.head[i];
-					this->rear[i] = other.rear[i];
+					this->rear[i]->next = other->head[i];
+					this->rear[i] = other->rear[i];
 				}
-				other.head[i] = nullptr;
-				other.rear[i] = nullptr;
+				other->head[i] = nullptr;
+				other->rear[i] = nullptr;
 			}
+
+			other->now_pool = this->now_pool;
+			
+			other->next = this->next;
+			this->next = other;
 		}
 	};
 
 	template <class T>
 	class Vector2 {
 	private:
+		Arena* pool = nullptr;
 		T* m_arr = nullptr;
 		uint64_t m_capacity = 0;
 		uint64_t m_size = 0;
-		Arena* pool = nullptr;
 	public:
+		// =delete?
 		Vector2() : pool(nullptr) {
 			//
 		}
@@ -1044,6 +1054,7 @@ namespace claujson {
 			m_capacity = 2 * sz;
 			m_arr = new T[m_capacity]();
 		}
+		// with Arena..
 		Vector2(Arena* pool, uint64_t sz) : pool(pool) {
 			m_size = sz;
 			m_capacity = 2 * sz;
@@ -1076,9 +1087,12 @@ namespace claujson {
 		~Vector2() {
 			if (m_arr && !pool) { delete[] m_arr; }
 			else if (m_arr) {
-				for (uint64_t i = 0; i < m_size; ++i) {
-					m_arr[i].~T();
-				}
+				//for (uint64_t i = 0; i < m_size; ++i) {
+				//	m_arr[i].~T();
+				//}
+				//if (m_capacity > 0) {
+				//	pool->deallocate(m_arr, m_capacity);
+				//}
 			}
 		}
 		Vector2(const Vector2& other) {
@@ -1153,6 +1167,33 @@ namespace claujson {
 			std::swap(pool, other.pool);
 		}
 	public:
+		// rename...! // [start_idx ~ size())
+		[[nodiscard]]
+		Vector2<T> Divide(uint64_t start_idx) {
+			Vector2<T> result;
+			
+			if (pool && start_idx < size()) {
+				result.pool = this->pool->now_pool;
+				if (!result.pool->now_pool) {
+					std::cout << "nullptr\n";
+				}
+				result.m_arr = this->m_arr + start_idx;
+				result.m_capacity = (capacity() - start_idx);
+				result.m_size = size() - start_idx;
+				this->m_capacity = start_idx; // ?
+				this->m_size = start_idx;
+			}
+			else if (start_idx < size()) {
+				for (uint64_t i = start_idx; i < size(); ++i) {
+					result.push_back(std::move(this->m_arr[i]));
+				}
+				for (uint64_t i = m_size; i > start_idx; --i) {
+					this->pop_back();
+				}
+			}
+
+			return result;
+		}
 		void erase(T* p) {
 			uint64_t idx = p - m_arr;
 
@@ -1239,9 +1280,9 @@ namespace claujson {
 						temp[i] = std::move(m_arr[i]);
 					}
 				}
-				for (uint64_t i = 0; i < m_size; ++i) {
-					m_arr[i].~T();
-				}
+				//for (uint64_t i = 0; i < m_size; ++i) {
+				//	m_arr[i].~T();
+				//}
 				pool->deallocate(m_arr, m_capacity);
 				m_arr = temp;
 			}

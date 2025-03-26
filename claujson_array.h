@@ -23,6 +23,7 @@ namespace claujson {
 		friend class Object;
 		friend class PartialJson;
 		friend class StructuredPtr;
+		friend class LoadData2;
 
 		_Value clone(Arena* pool) const;
 
