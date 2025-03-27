@@ -1247,7 +1247,7 @@ namespace claujson {
 					}
 				}
 				
-				int a = clock();
+				//int a = clock();
 				if (parent.is_array()) {
 					out->arr_vec = parent.arr->arr_vec.Divide(idx + 1);
 				}

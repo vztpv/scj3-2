@@ -25,7 +25,7 @@ void utf_8_test() {
 	using claujson::_Value;
 
 	claujson::Document d;
-	// C++17 - stringview, C++20~ - u8string_view
+	// C++17 - string_view, C++20~ - u8string_view
 	_Value x(d.GetAllocator(), u8"こんにちは \\n wow hihi"sv); // no sv -> Data(bool)
 	if (x) { // if before string is not valid utf-8, then x is not valid. x -> false
 		auto& y = x.str_val();

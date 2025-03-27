@@ -560,7 +560,7 @@ namespace claujson {
 		Block* rear[4];
 		uint64_t defaultBlockSize;
 		Arena* now_pool;
-		Arena* next;
+	//	Arena* next;
 	public:
 		Arena(uint64_t initialSize = 1024 * 512 + 64)
 			: defaultBlockSize(initialSize) {
@@ -569,7 +569,7 @@ namespace claujson {
 				rear[i] = head[i];
 			}
 			now_pool = this;
-			next = nullptr;
+		//	next = nullptr;
 		}
 
 		Arena(const Arena&) = delete;
@@ -1032,8 +1032,8 @@ namespace claujson {
 
 			other->now_pool = this->now_pool;
 			
-			other->next = this->next;
-			this->next = other;
+			//other->next = this->next;
+			//this->next = other;
 		}
 	};
 
@@ -1090,9 +1090,9 @@ namespace claujson {
 				//for (uint64_t i = 0; i < m_size; ++i) {
 				//	m_arr[i].~T();
 				//}
-				//if (m_capacity > 0) {
-				//	pool->deallocate(m_arr, m_capacity);
-				//}
+				if (m_capacity > 0) {
+					pool->deallocate(m_arr, m_capacity);
+				}
 			}
 		}
 		Vector2(const Vector2& other) {
@@ -1171,12 +1171,9 @@ namespace claujson {
 		[[nodiscard]]
 		Vector2<T> Divide(uint64_t start_idx) {
 			Vector2<T> result;
-			
+
 			if (pool && start_idx < size()) {
 				result.pool = this->pool->now_pool;
-				if (!result.pool->now_pool) {
-					std::cout << "nullptr\n";
-				}
 				result.m_arr = this->m_arr + start_idx;
 				result.m_capacity = (capacity() - start_idx);
 				result.m_size = size() - start_idx;
@@ -1209,12 +1206,14 @@ namespace claujson {
 		void insert(T* start, T* last) {
 			uint64_t sz = m_size + (last - start);
 			if (sz <= m_size) { return; }
-			if (sz > m_capacity) {
-				expand(2 * sz);
-			}
 
-			for (uint64_t i = m_size; i < sz; ++i) {
-				m_arr[i] = std::move(start[i - m_size]);
+			{
+				if (sz > m_capacity) {
+					expand(2 * sz);
+				} 
+				for (uint64_t i = m_size; i < sz; ++i) {
+					m_arr[i] = std::move(start[i - m_size]);
+				}
 			}
 			m_size = sz;
 		}
