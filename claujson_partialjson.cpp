@@ -10,7 +10,7 @@ namespace claujson {
 		//
 	}
 
-	PartialJson::PartialJson() : virtualJson(), arr_vec(), obj_data() {
+	PartialJson::PartialJson(Arena* pool) : virtualJson(pool), arr_vec(pool, 0, 1), obj_data(pool, 0, 1), pool(pool) {
 
 	}
 
@@ -174,13 +174,13 @@ namespace claujson {
 
 				bool e = false;
 
-				claujson::Convert(nullptr, temp, key_buf_idx, key_next_buf_idx, true, buf, key_token_idx, e);
+				claujson::Convert(pool, temp, key_buf_idx, key_next_buf_idx, true, buf, key_token_idx, e);
 
 				if (e) {
 					ERROR("Error in add_item_type");
 				}
 
-				claujson::Convert(nullptr, temp2, val_buf_idx, val_next_buf_idx, false, buf, val_token_idx, e);
+				claujson::Convert(pool, temp2, val_buf_idx, val_next_buf_idx, false, buf, val_token_idx, e);
 
 				if (e) {
 					ERROR("Error in add_item_type");
@@ -206,7 +206,7 @@ namespace claujson {
 				_Value temp2;
 				bool e = false;
 
-				claujson::Convert(nullptr, temp2, val_buf_idx, val_next_buf_idx, false, buf, val_token_idx, e);
+				claujson::Convert(pool, temp2, val_buf_idx, val_next_buf_idx, false, buf, val_token_idx, e);
 
 				if (e) {
 

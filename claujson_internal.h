@@ -552,15 +552,19 @@ namespace claujson {
 
 			~Block() {
 				delete[] data;
+				data = nullptr;
 			//	mi_free(data);
 			}
+
+			Block(const Block&) = delete;
+			Block& operator=(const Block&) = delete;
 		};
 	public:
 		Block* head[4];
 		Block* rear[4];
 		uint64_t defaultBlockSize;
 		Arena* now_pool;
-	//	Arena* next;
+		Arena* next;
 	public:
 		Arena(uint64_t initialSize = 1024 * 512 + 64)
 			: defaultBlockSize(initialSize) {
@@ -569,7 +573,7 @@ namespace claujson {
 				rear[i] = head[i];
 			}
 			now_pool = this;
-		//	next = nullptr;
+			next = nullptr;
 		}
 
 		Arena(const Arena&) = delete;
@@ -614,22 +618,25 @@ namespace claujson {
 							}
 							return ptr;
 						}
+
 						before = temp;
 						temp = temp->next;
 					}
 				}
 
-				if (block->offset + size <= block->capacity) {
-					void* ptr = block->data + block->offset;
-					uint64_t remain = block->capacity - size;
-					if (!std::align(alignof(T), size, ptr, remain)) {
-						block = block->next;
-						continue;
-					}
-					uint64_t diff = ((uint8_t*)ptr - block->data);
-					block->offset = diff + size;
-					return reinterpret_cast<T*>(ptr);
+				size_t remain = block->capacity - block->offset;
+
+				void* ptr = block->data + block->offset;
+				void* aligned_ptr = ptr;
+
+				if (std::align(alignof(T), size, aligned_ptr, remain)) {
+					size_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - block->data;
+
+					block->offset = aligned_offset + size;
+
+					return reinterpret_cast<T*>(aligned_ptr);
 				}
+
 				block = block->next;
 			}
 
@@ -640,19 +647,21 @@ namespace claujson {
 				return nullptr;
 			}
 			counter++;
-			uint64_t remain = newCap - newBlock->offset;
+			uint64_t remain = newBlock->capacity - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remain)) {
-				delete newBlock;
-				return nullptr;
+			void* aligned_ptr = ptr;
+
+			if (std::align(alignof(T), size, aligned_ptr, remain)) {
+				uint64_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - newBlock->data;
+
+				newBlock->offset = aligned_offset + size;
+
+				newBlock->next = now_pool->head[1];
+				now_pool->head[1] = newBlock;
+
+				return reinterpret_cast<T*>(aligned_ptr);
 			}
-			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
-			newBlock->offset = diff + size;
-
-			newBlock->next = now_pool->head[1];
-			now_pool->head[1] = newBlock;
-
-			return reinterpret_cast<T*>(ptr);
+			return nullptr;
 		}
 		
 		template <class T>
@@ -790,16 +799,18 @@ namespace claujson {
 					}
 				}
 
-				if (block->offset + size <= block->capacity) {
-					void* ptr = block->data + block->offset;
-					uint64_t remain = block->capacity - size;
-					if (!std::align(alignof(T), size, ptr, remain)) {
-						block = block->next;
-						continue;
-					}
-					uint64_t diff = ((uint8_t*)ptr - block->data);
-					block->offset = diff + size;
-					return reinterpret_cast<T*>(ptr);
+
+				size_t remain = block->capacity - block->offset;
+
+				void* ptr = block->data + block->offset;
+				void* aligned_ptr = ptr;
+
+				if (std::align(alignof(T), size, aligned_ptr, remain)) {
+					size_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - block->data;
+
+					block->offset = aligned_offset + size;
+
+					return reinterpret_cast<T*>(aligned_ptr);
 				}
 				block = block->next;
 			}
@@ -811,19 +822,21 @@ namespace claujson {
 				return nullptr;
 			}
 			counter++;
-			uint64_t remain = newCap - newBlock->offset;
+			uint64_t remain = newBlock->capacity - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remain)) {
-				delete newBlock;
-				return nullptr;
+			void* aligned_ptr = ptr;
+
+			if (std::align(alignof(T), size, aligned_ptr, remain)) {
+				uint64_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - newBlock->data;
+
+				newBlock->offset = aligned_offset + size;
+
+				newBlock->next = now_pool->head[2];
+				now_pool->head[2] = newBlock;
+
+				return reinterpret_cast<T*>(aligned_ptr);
 			}
-			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
-			newBlock->offset = diff + size;
-
-			newBlock->next = now_pool->head[2];
-			now_pool->head[2] = newBlock;
-
-			return reinterpret_cast<T*>(ptr);
+			return nullptr;
 		}
 		// Array or Object
 		template <class T>
@@ -865,16 +878,17 @@ namespace claujson {
 						temp = temp->next;
 					}
 				}
-				if (block->offset + size <= block->capacity) {
-					void* ptr = block->data + block->offset;
-					uint64_t remain = block->capacity - size;
-					if (!std::align(alignof(T), size, ptr, remain)) {
-						block = block->next;
-						continue;
-					}
-					uint64_t diff = ((uint8_t*)ptr - block->data);
-					block->offset = diff + size;
-					return reinterpret_cast<T*>(ptr);
+
+				size_t remain = block->capacity - block->offset;
+
+				void* ptr = block->data + block->offset;
+				void* aligned_ptr = ptr;
+
+				if (std::align(alignof(T), size, aligned_ptr, remain)) {
+					size_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - block->data;
+
+					block->offset = aligned_offset + size;
+					return reinterpret_cast<T*>(aligned_ptr);
 				}
 				block = block->next;
 			}
@@ -886,19 +900,21 @@ namespace claujson {
 				return nullptr;
 			}
 			counter++;
-			uint64_t remain = newCap - newBlock->offset;
+			uint64_t remain = newBlock->capacity - newBlock->offset;
 			void* ptr = newBlock->data + newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remain)) {
-				delete newBlock;
-				return nullptr;
+			void* aligned_ptr = ptr;
+
+			if (std::align(alignof(T), size, aligned_ptr, remain)) {
+				uint64_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - newBlock->data;
+
+				newBlock->offset = aligned_offset + size;
+
+				newBlock->next = now_pool->head[3];
+				now_pool->head[3] = newBlock;
+
+				return reinterpret_cast<T*>(aligned_ptr);
 			}
-			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
-			newBlock->offset = diff + size;
-
-			newBlock->next = now_pool->head[3];
-			now_pool->head[3] = newBlock;
-
-			return reinterpret_cast<T*>(ptr);
+			return nullptr;
 		}
 	public:
 		template <class T>
@@ -918,16 +934,19 @@ namespace claujson {
 				Block* block = now_pool->head[0];
 
 				while (block) {
-					if (block->offset + size <= block->capacity) {
+					if (block->offset + size < block->capacity) {
+						uint64_t remain = block->capacity - block->offset;
+
 						void* ptr = block->data + block->offset;
-						uint64_t remain = block->capacity - size;
-						if (!std::align(alignof(T), size, ptr, remain)) {
-							block = block->next;
-							continue;
+						void* aligned_ptr = ptr;
+						
+						if (std::align(alignof(T), size, aligned_ptr, remain)) {
+							uint64_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - block->data;
+
+							block->offset = aligned_offset + size;
+
+							return reinterpret_cast<T*>(aligned_ptr);
 						}
-						uint64_t diff = ((uint8_t*)ptr - block->data);
-						block->offset = diff + size;
-						return reinterpret_cast<T*>(ptr);
 					}
 					block = block->next;
 				}
@@ -944,16 +963,19 @@ namespace claujson {
 			newBlock->next = now_pool->head[0];
 			now_pool->head[0] = newBlock;
 
-			void* ptr = newBlock->data + newBlock->offset;
 			uint64_t remain = newBlock->capacity - newBlock->offset;
-			if (!std::align(alignof(T), size, ptr, remain)) {
-				delete newBlock;
-				return nullptr;
+			void* ptr = newBlock->data + newBlock->offset;
+			void* aligned_ptr = ptr;
+
+			if (std::align(alignof(T), size, aligned_ptr, remain)) {
+				uint64_t aligned_offset = static_cast<uint8_t*>(aligned_ptr) - newBlock->data;
+
+				newBlock->offset = aligned_offset + size;
+
+				return reinterpret_cast<T*>(aligned_ptr);
 			}
-			uint64_t diff = ((uint8_t*)ptr - newBlock->data);
-			newBlock->offset += size;
-			
-			return reinterpret_cast<T*>(ptr);
+
+			return nullptr;
 		}
 
 		// expand
@@ -961,15 +983,17 @@ namespace claujson {
 		void deallocate(T* ptr, uint64_t len) {		
 
 			if (sizeof(T) == 16) {
-				return deallocate16<T>(ptr, len);
+				//return deallocate16<T>(ptr, len);
 			}
 			if (sizeof(T) == 32) {
-				return deallocate32<T>(ptr, len);
+				//return deallocate32<T>(ptr, len);
 			}
 			if (sizeof(T) == 64) {
-				return deallocate64<T>(ptr, len);
+				//return deallocate64<T>(ptr, len);
 			}
 
+			return;
+			
 			// chk !
 			Block* block = now_pool->head[0];
 
@@ -990,28 +1014,25 @@ namespace claujson {
 			return new (mem) T(std::forward<Args>(args)...);
 		}
 
-		void reset() {
+	public:
+		~Arena() {
+			//return;
 			for (int i = 0; i < 4; ++i) {
 				if (head[i]) {
-					Block* block = head[i]->next;
+					Block* block = head[i];
 					while (block) {
 						Block* next = block->next;
 						delete block;
 						block = next;
 					}
-					head[i]->next = nullptr;
-					head[i]->offset = 0;
-					rear[i] = head[i];
 				}
 			}
-		}
 
-		~Arena() {
-			reset();
-			for (int i = 0; i < 4; ++i) {
-				if (head[i]) {
-					delete head[i];
-				}
+			while (next) {
+				Arena* temp = next->next;
+				next->next = nullptr;
+				delete next;
+				next = temp;
 			}
 		}
 
@@ -1032,8 +1053,8 @@ namespace claujson {
 
 			other->now_pool = this->now_pool;
 			
-			//other->next = this->next;
-			//this->next = other;
+			other->next = this->next;
+			this->next = other;
 		}
 	};
 
@@ -1061,11 +1082,12 @@ namespace claujson {
 			if (pool) {
 				m_arr = (T*)pool->allocate<T>(sizeof(T) * m_capacity, alignof(T));
 
-				for (uint64_t i = 0; i < m_capacity; ++i) {
+				for (uint64_t i = 0; i < m_size; ++i) {
 					new (&m_arr[i]) T();
 				}
 			}
 			else {
+				std::cout << "pool is nullptr\n"; // chk?
 				m_arr = new T[m_capacity]();
 			}
 		}
@@ -1076,7 +1098,7 @@ namespace claujson {
 			if (pool) {
 				m_arr = (T*)pool->allocate<T>(sizeof(T) * m_capacity, alignof(T));
 
-				for (uint64_t i = 0; i < m_capacity; ++i) {
+				for (uint64_t i = 0; i < m_size; ++i) {
 					new (&m_arr[i]) T();
 				}
 			}
@@ -1090,6 +1112,9 @@ namespace claujson {
 				//for (uint64_t i = 0; i < m_size; ++i) {
 				//	m_arr[i].~T();
 				//}
+				for (uint64_t i = 0; i < m_size; ++i) {
+					m_arr[i].~T();
+				}
 				if (m_capacity > 0) {
 					pool->deallocate(m_arr, m_capacity);
 				}
@@ -1205,6 +1230,7 @@ namespace claujson {
 		}
 		void insert(T* start, T* last) {
 			uint64_t sz = m_size + (last - start);
+
 			if (sz <= m_size) { return; }
 
 			{
@@ -1212,7 +1238,8 @@ namespace claujson {
 					expand(2 * sz);
 				} 
 				for (uint64_t i = m_size; i < sz; ++i) {
-					m_arr[i] = std::move(start[i - m_size]);
+					new (&m_arr[i]) T(std::move(start[i - m_size]));
+				//	m_arr[i] = std::move(start[i - m_size]);
 				}
 			}
 			m_size = sz;
@@ -1228,10 +1255,13 @@ namespace claujson {
 				}
 			}
 
-			m_arr[m_size++] = std::forward<T>(x);
+			//new (&m_arr[m_size]) T();
+			new (&m_arr[m_size++]) T(std::move(x));
 		}
 		void pop_back() {
-			m_size--;
+			if (m_size > 0) {
+				m_size--;
+			}
 		}
 		T& back() {
 			return m_arr[m_size - 1];
@@ -1272,17 +1302,18 @@ namespace claujson {
 	private:
 		void expand(uint64_t new_capacity) {
 			if (pool) {
-				T* temp = (T*)pool->allocate<T>(sizeof(T) * new_capacity, alignof(T));
-				for (uint64_t i = 0; i < new_capacity; ++i) {
-					new (temp + i) T();
-					if (i < m_size) {
-						temp[i] = std::move(m_arr[i]);
-					}
+				T* temp = (T*)pool->allocate<T>(sizeof(T) * new_capacity);
+				for (uint64_t i = 0; i < m_size; ++i) {
+					//new (temp + i) T();
+					new (temp + i) T(std::move(m_arr[i]));
 				}
+
 				//for (uint64_t i = 0; i < m_size; ++i) {
 				//	m_arr[i].~T();
 				//}
-				pool->deallocate(m_arr, m_capacity);
+				if (temp != m_arr) {
+					pool->deallocate<T>(m_arr, m_capacity);
+				}
 				m_arr = temp;
 			}
 			else {

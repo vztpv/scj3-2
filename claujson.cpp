@@ -1230,7 +1230,7 @@ namespace claujson {
 
 			StructuredPtr parent(pos.get_parent());
 			
-			PartialJson* out = new (std::nothrow) PartialJson(); //
+			PartialJson* out = new (std::nothrow) PartialJson(pool); //
 
 			if (out == nullptr) {
 				log << warn << "new error";
@@ -1804,7 +1804,7 @@ namespace claujson {
 
 			 uint64_t parse_num) // first, strVec.empty() must be true!!
 		{	
-			StructuredPtr _global = (new PartialJson());
+			StructuredPtr _global = (new PartialJson(_global_memory_pool));
 			std_vector<StructuredPtr> __global;
 			std::vector<Arena*> memory_pool;
 
@@ -1848,18 +1848,20 @@ namespace claujson {
 
 					std_vector<StructuredPtr> next(pivots.size() - 1);
 					{
+						memory_pool = std::vector<Arena*>(pivots.size() - 1);
+						for (auto*& x : memory_pool) {
+							x = new Arena();
+						}
+
 						__global = std_vector<StructuredPtr>(pivots.size() - 1);
 						for (uint64_t i = 0; i < __global.size(); ++i) {
-							__global[i] = (new PartialJson());
+							__global[i] = (new PartialJson(memory_pool[i]));
 						}
 
 						std_vector<std::future<bool>> result(pivots.size() - 1);
 						std_vector<int> err(pivots.size() - 1);
 						
-						memory_pool = std::vector<Arena*>(pivots.size() - 1);
-						for (auto& x : memory_pool) {
-							x = new Arena();
-						}
+						
 
 						{
 							int64_t idx = pivots[1] - pivots[0];
@@ -2004,7 +2006,7 @@ namespace claujson {
 
 							_global_memory_pool->link_from(memory_pool[start]);
 							for (uint64_t i = start + 1; i <= last; ++i) {
-								if (chk[i]) { continue; }
+								if (chk[i]) { delete memory_pool[start]; continue; }
 								_global_memory_pool->link_from(memory_pool[i]);
 							}
 						}
@@ -5335,6 +5337,9 @@ namespace claujson {
 	}
 
 	void clean(_Value& x) {
+
+		return;
+
 		if (x.is_structured()) {
 			if (x.is_array() && !x.as_array()->has_pool()) {
 				delete x.as_array();

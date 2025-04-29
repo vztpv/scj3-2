@@ -11,6 +11,8 @@ namespace claujson {
 
 		_Value virtualJson = _Value();
 
+		Arena* pool;
+
 		static _Value data_null; // valid is false..
 		static const uint64_t npos; // 
 	public:
@@ -23,7 +25,7 @@ namespace claujson {
 		friend class Array;
 		friend class StructuredPtr;
 
-		PartialJson();
+		PartialJson(Arena* pool);
 
 	public:
 		bool is_partial_json() const;

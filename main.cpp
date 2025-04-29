@@ -3,9 +3,9 @@
 // need C++14~, 64bit..
 // mainly tested with C++17...
 
-#define _CRTDBG_MAP_ALLOC
-#include <cstdlib>
-#include <crtdbg.h>
+//#define _CRTDBG_MAP_ALLOC
+//#include <cstdlib>
+//#include <crtdbg.h>
 
 #include "mimalloc-new-delete.h"
 
@@ -13,7 +13,7 @@
 #include <string>
 #include <ctime>
 
-#include "claujson.h" // using simdjson 3.9.1
+#include "claujson.h" // using simdjson 3.12.3?
 
 #include "_simdjson.h"
 
@@ -533,7 +533,7 @@ void diff_test2() {
 
 int main(int argc, char* argv[])
 {
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	//_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 
 	std::cout << sizeof(std::vector<std::pair<claujson::_Value, claujson::_Value>>) << "\n";
 	//std::cout << sizeof(std::string) << " " << sizeof(claujson::Structured) << " " << sizeof(claujson::Array)
@@ -643,7 +643,7 @@ int main(int argc, char* argv[])
 
 	claujson::parser p;
 
-	for (int i = 0; i < 1000; ++i) {
+	for (int i = 0; i < 100; ++i) {
 		claujson::Arena::counter = 0;
 
 		claujson::Document j;
@@ -727,9 +727,10 @@ int main(int argc, char* argv[])
 	//	claujson::Arena::counter = 0;
 
 		claujson::writer w;
-		claujson::Document d;
-		w.write_parallel(d.GetAllocator(), "temp.json", j.Get(), 0, true);
-
+		{
+			claujson::Document d;
+			w.write_parallel(d.GetAllocator(), "temp.json", j.Get(), thr_num, true);
+		}
 		std::cout << "write_parallel " << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - c).count() << "ms\n";
 	//	std::cout << "counter " << claujson::Arena::counter << "\n";
 
@@ -775,7 +776,7 @@ int main(int argc, char* argv[])
 		std::vector<claujson::_Value> vec;
 
 		// json_pointer, json_pointerA <- u8string_view?
-
+		claujson::Document d;
 		static const auto _geometry = claujson::_Value(d.GetAllocator(), "geometry"sv);
 		static const auto _coordinates = claujson::_Value(d.GetAllocator(), "coordinates"sv);
 ///
@@ -828,8 +829,10 @@ int main(int argc, char* argv[])
 		dur = std::chrono::duration_cast<std::chrono::milliseconds>(dd - c);
 		std::cout << "clean " << dur.count() << "ms\n";
 		{
-			claujson::Document d;
-			w.write_parallel(d.GetAllocator(), "test2333.json", j.Get(), 0, true);
+			for (int i = 0; i < 1; ++i) {
+				claujson::Document d;
+				w.write_parallel(d.GetAllocator(), "test2333.json", j.Get(), thr_num, true);
+			}
 		}
 
 		//std::cout << "counter " << claujson::Arena::counter << "\n";
