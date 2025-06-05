@@ -4,7 +4,7 @@
 namespace claujson {
 	class  alignas(64) Object {
 	protected:
-		std_vector<Pair<claujson::_Value, claujson::_Value>> obj_data;
+		my_vector<Pair<claujson::_Value, claujson::_Value>> obj_data;
 		StructuredPtr parent;
 		bool _is_virtual = false;
 		uint8_t temp[8];
@@ -12,8 +12,8 @@ namespace claujson {
 		static _Value data_null; // valid is false..
 		static const uint64_t npos;
 	public:
-		using _ValueIterator = Pair<claujson::_Value, claujson::_Value>*; // std_vector<Pair<claujson::_Value, claujson::_Value>>::iterator;
-		using _ConstValueIterator = const Pair<claujson::_Value, claujson::_Value>*; // std_vector<Pair<claujson::_Value, claujson::_Value>>::const_iterator;
+		using _ValueIterator = Pair<claujson::_Value, claujson::_Value>*; // my_vector<Pair<claujson::_Value, claujson::_Value>>::iterator;
+		using _ConstValueIterator = const Pair<claujson::_Value, claujson::_Value>*; // my_vector<Pair<claujson::_Value, claujson::_Value>>::const_iterator;
 	protected:
 		//explicit Object(bool valid);
 	public:

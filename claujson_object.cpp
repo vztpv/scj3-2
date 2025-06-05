@@ -8,10 +8,10 @@ namespace claujson {
 
 	class CompKey {
 	private:
-		const std_vector<Pair<_Value, _Value>>* vec;
+		const my_vector<Pair<_Value, _Value>>* vec;
 	public:
 
-		CompKey(const std_vector<Pair<_Value, _Value>>* vec) : vec(vec) {
+		CompKey(const my_vector<Pair<_Value, _Value>>* vec) : vec(vec) {
 			//
 		}
 
@@ -39,7 +39,7 @@ namespace claujson {
 
 	bool Object::chk_key_dup(uint64_t* idx) const {
 		bool has_dup = false;
-		std_vector<uint64_t> copy_(obj_data.size());
+		my_vector<uint64_t> copy_(obj_data.size());
 
 		for (uint64_t i = 0; i < copy_.size(); ++i) {
 			copy_[i] = i;
@@ -67,7 +67,7 @@ namespace claujson {
 		if (pool) {
 			obj = (Object*)pool->allocate<Object>(sizeof(Object), alignof(Object)); // new (std::nothrow) Object();
 			new (obj) Object();
-			obj->obj_data = std_vector<Pair<_Value, _Value>>(pool, 0, 2);
+			obj->obj_data = my_vector<Pair<_Value, _Value>>(pool, 0, 2);
 		}
 		else {
 			obj = new (std::nothrow) Object();
@@ -85,7 +85,7 @@ namespace claujson {
 		if (pool) {
 			obj = (Object*)pool->allocate<Object>(sizeof(Object), alignof(Object)); // new (std::nothrow) Object();
 			new (obj) Object();
-			obj->obj_data = std_vector<Pair<_Value, _Value>>(pool, 0, 2);
+			obj->obj_data = my_vector<Pair<_Value, _Value>>(pool, 0, 2);
 		}
 		else {
 			obj = new (std::nothrow) Object();

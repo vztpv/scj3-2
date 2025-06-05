@@ -7,7 +7,7 @@
 
 #include "thread_pool.h"
 
-#include "_simdjson.h" // modified simdjson // using simdjson 3.9.1
+#include "_simdjson.h" // modified simdjson // using simdjson 3.12.3
 
 namespace claujson {
 	class _Value;
@@ -196,8 +196,8 @@ namespace claujson {
 
 		bool& bool_val();
 
-		_Value& json_pointerB(const std_vector<_Value>& routeDataVec);
-		const _Value& json_pointerB(const std_vector<_Value>& routeVec) const;
+		_Value& json_pointerB(const my_vector<_Value>& routeDataVec);
+		const _Value& json_pointerB(const my_vector<_Value>& routeVec) const;
 
 		Array* as_array();
 		Object* as_object();

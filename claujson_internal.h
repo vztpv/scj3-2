@@ -1332,7 +1332,7 @@ namespace claujson {
 	};
 
 	template <class T>
-	using std_vector = Vector2<T>;
+	using my_vector = Vector2<T>;
 
 } // end of claujson
 

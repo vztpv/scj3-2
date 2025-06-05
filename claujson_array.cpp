@@ -33,7 +33,7 @@ namespace claujson {
 		if (pool) {
 			temp = (Array*)pool->allocate<Array>(sizeof(Array), alignof(Array)); // new (std::nothrow) Array();
 			new (temp) Array();
-			temp->arr_vec = std_vector<_Value>(pool, 0, 2);
+			temp->arr_vec = my_vector<_Value>(pool, 0, 2);
 		}
 		else {
 			temp = new (std::nothrow) Array();
@@ -52,7 +52,7 @@ namespace claujson {
 		if (pool) {
 			temp = (Array*)pool->allocate<Array>(sizeof(Array), alignof(Array)); // new (std::nothrow) Array();
 			new (temp) Array();
-			temp->arr_vec = std_vector<_Value>(pool, 0, 2);
+			temp->arr_vec = my_vector<_Value>(pool, 0, 2);
 		}
 		else {
 			temp = new (std::nothrow) Array();

@@ -5,9 +5,9 @@ namespace claujson {
 	// class PartialJson, only used in class LoadData.
 	class PartialJson {
 	protected:
-		std_vector<_Value> arr_vec;
+		my_vector<_Value> arr_vec;
 		//
-		std_vector<Pair<_Value, _Value>> obj_data;
+		my_vector<Pair<_Value, _Value>> obj_data;
 
 		_Value virtualJson = _Value();
 

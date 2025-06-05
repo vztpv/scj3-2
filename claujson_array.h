@@ -6,7 +6,7 @@ namespace claujson {
 
 	class alignas(64) Array {
 	protected:
-		std_vector<_Value> arr_vec;
+		my_vector<_Value> arr_vec;
 		StructuredPtr parent;
 		bool _is_virtual = false;
 		uint8_t temp[8];
@@ -14,8 +14,8 @@ namespace claujson {
 		static _Value data_null; // valid is false..
 		static const uint64_t npos;
 	public:
-		using _ValueIterator = _Value*;// std_vector<_Value>::iterator;
-		using _ConstValueIterator = const _Value*; // std_vector<_Value>::const_iterator;
+		using _ValueIterator = _Value*;// my_vector<_Value>::iterator;
+		using _ConstValueIterator = const _Value*; // my_vector<_Value>::const_iterator;
 	protected:
 		//explicit Array(bool valid);
 	public:

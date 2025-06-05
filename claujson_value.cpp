@@ -240,7 +240,7 @@ namespace claujson {
 	}
 
 	// this _Value is Array or Object.
-	_Value& _Value::json_pointerB(const std_vector<_Value>& routeVec) {
+	_Value& _Value::json_pointerB(const my_vector<_Value>& routeVec) {
 		static _Value unvalid_data(nullptr, false);
 
 		if (is_structured() == false) {
@@ -284,7 +284,7 @@ namespace claujson {
 		return *data;
 	}
 
-	const _Value& _Value::json_pointerB(const std_vector<_Value>& routeVec) const { // option-> StringView route?
+	const _Value& _Value::json_pointerB(const my_vector<_Value>& routeVec) const { // option-> StringView route?
 		static _Value unvalid_data(nullptr, false);
 
 		if (is_structured() == false) {
