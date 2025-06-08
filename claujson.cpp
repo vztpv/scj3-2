@@ -4493,7 +4493,7 @@ namespace claujson {
 
 			LoadData2 p(pool.get());
 						
-			if (false == p.parse(ut, d.pool, buf.get(), buf_len, simdjson_imple_, length, start, count_vec,
+			if (false == p.parse(ut, d.pool, buf, buf_len, simdjson_imple_, length, start, count_vec,
 				thr_num)) // 0 : use all thread..
 			{
 				free(count_vec);
@@ -4797,7 +4797,7 @@ namespace claujson {
 
 			LoadData2 p(pool.get());
 
-			if (false == p.parse(ut, d.pool, buf.get(), buf_len, simdjson_imple_, length, start, count_vec,
+			if (false == p.parse(ut, d.pool, buf, buf_len, simdjson_imple_, length, start, count_vec,
 				thr_num)) // 0 : use all thread..
 			{
 				free(count_vec);
