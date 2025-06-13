@@ -2006,7 +2006,7 @@ namespace claujson {
 
 							_global_memory_pool->link_from(memory_pool[start]);
 							for (uint64_t i = start + 1; i <= last; ++i) {
-								if (chk[i]) { delete memory_pool[start]; continue; }
+								if (chk[i]) { delete memory_pool[i]; memory_pool[i] = nullptr; continue; }
 								_global_memory_pool->link_from(memory_pool[i]);
 							}
 						}
@@ -2070,7 +2070,9 @@ namespace claujson {
 					_global.Delete();
 				}
 				for (uint64_t i = 0; i < memory_pool.size(); ++i) {
-					delete memory_pool[i];
+					if (memory_pool[i]) {
+						delete memory_pool[i];
+					}
 				}
 				return false;
 			}
@@ -2087,7 +2089,9 @@ namespace claujson {
 					_global.Delete();
 				}
 				for (uint64_t i = 0; i < memory_pool.size(); ++i) {
-					delete memory_pool[i];
+					if (memory_pool[i]) {
+						delete memory_pool[i];
+					}
 				}
 				return false;
 			}
@@ -2103,7 +2107,9 @@ namespace claujson {
 					_global.Delete();
 				}
 				for (uint64_t i = 0; i < memory_pool.size(); ++i) {
-					delete memory_pool[i];
+					if (memory_pool[i]) {
+						delete memory_pool[i];
+					}
 				}
 
 				//ERROR("Internal Error"sv);
