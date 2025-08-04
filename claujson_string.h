@@ -26,60 +26,9 @@ namespace claujson {
 	public:
 		static const uint64_t npos = -1;
 	public:
-		String& operator=(const String& other) {
-			if (!is_valid() || !other.is_valid() || this == &other) { return *this; }
+		String& operator=(const String& other) = delete;
 
-			if (this->is_str()) {
-				clear();
-			}
-
-			if (other.type == _ValueType::STRING) {
-				if (this->pool) {
-					this->str = (char*)this->pool->allocate<char>(sizeof(char) * (other.sz + 1));
-				}
-				else {
-					this->str = new (std::nothrow) char[other.sz + 1];
-				}
-				
-				if (this->str == nullptr) {
-					this->type = _ValueType::ERROR;
-					log << warn << "new error";
-					return *this;
-				}
-
-				this->sz = other.sz;
-				memcpy(this->str, other.str, other.sz);
-				this->str[this->sz] = '\0';
-				this->type = other.type;
-			}
-			else if (other.type == _ValueType::SHORT_STRING) {
-				memcpy(buf, other.buf, CLAUJSON_STRING_BUF_SIZE);
-				this->buf_sz = other.buf_sz;
-				this->type_ = other.type_;
-			}
-
-			return *this;
-		}
 	protected:
-		String(const String& other) {
-			if (other.type == _ValueType::STRING) {
-				this->str = new (std::nothrow) char[other.sz + 1];
-				if (this->str == nullptr) {
-					log << warn << "new error";
-					this->type = _ValueType::ERROR; return;
-				}
-
-				this->sz = other.sz;
-				memcpy(this->str, other.str, other.sz);
-				this->str[this->sz] = '\0';
-				this->type = other.type;
-			}
-			else if (other.type == _ValueType::SHORT_STRING) {
-				memcpy(buf, other.buf, CLAUJSON_STRING_BUF_SIZE);
-				this->buf_sz = other.buf_sz;
-				this->type_ = other.type_;
-			}
-		}
 		String(String&& other) noexcept {
 			this->type = _ValueType::NONE;
 			std::swap(this->str, other.str);
@@ -115,7 +64,12 @@ namespace claujson {
 
 			if (this->type == _ValueType::STRING) {
 				obj.sz = this->sz;
-				obj.str = new (std::nothrow) char[this->sz + 1];
+				if (pool) {
+					obj.str = (char*)pool->allocate<char>(sizeof(char) * (this->sz + 1));
+				}
+				else {
+					obj.str = new (std::nothrow) char[this->sz + 1];
+				}
 				if (obj.str == nullptr) {
 					log << warn << "new error";
 					obj.type = _ValueType::ERROR;
@@ -341,3 +295,4 @@ namespace claujson {
 		}
 	};
 }
+
