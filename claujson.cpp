@@ -5313,9 +5313,8 @@ namespace claujson {
 				}
 
 				_Value& _ = result.json_pointerB(vec);
-
-				if (_.is_array()) {
-					StructuredPtr parent = (_.as_array()->get_parent());
+                                 {
+					StructuredPtr parent = _;
 
 					// case : result.json_pointer returns root?
 					if (!parent) {
@@ -5573,4 +5572,5 @@ namespace claujson {
 #endif
 
 }
+
 
